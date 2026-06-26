@@ -260,6 +260,42 @@
   table.htbl{min-width:1560px;}
   table.htbl td .pill{font-size:10px;padding:3px 8px;}
 
+  /* ===== 営業分析 ===== */
+  .sales-summary{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px;}
+  .staff-chip{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px;box-shadow:var(--shadow);}
+  .staff-chip .sc-name{font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:6px;}
+  .staff-chip .sc-name svg{color:var(--pp2);}
+  .staff-chip .sc-stats{display:flex;flex-wrap:wrap;gap:5px 10px;margin-top:6px;font-size:11.5px;}
+  .staff-chip .sc-stats em{font-style:normal;font-weight:700;color:var(--sub);}
+  .staff-chip .sc-stats em.j-good{color:var(--green);} .staff-chip .sc-stats em.j-ok{color:var(--amber);}
+  .staff-chip .sc-stats em.j-bad{color:var(--red);} .staff-chip .sc-stats em.j-muted{color:var(--mute);}
+  .sales-note{font-size:11.5px;color:var(--sub);background:var(--amber-bg);border:1px solid #ecd79a;border-radius:11px;
+    padding:9px 12px;margin:0 0 18px;display:flex;align-items:center;gap:7px;line-height:1.45;}
+  .sales-note svg{color:#a96809;flex-shrink:0;}
+
+  /* 営業カード：成約／検討中／不成約 */
+  .sc-states{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px;}
+  .sc-state{border-radius:11px;padding:9px 6px;text-align:center;border:1px solid transparent;}
+  .sc-state .ssk{font-size:9.5px;font-weight:700;}
+  .sc-state .ssv{font-size:17px;font-weight:800;margin-top:2px;}
+  .sc-state.st-close{background:var(--green-bg);border-color:#bce7c8;}
+  .sc-state.st-close .ssk,.sc-state.st-close .ssv{color:#15803d;}
+  .sc-state.st-pending{background:#fdf4dd;border-color:#ecd79a;}
+  .sc-state.st-pending .ssk,.sc-state.st-pending .ssv{color:#a96809;}
+  .sc-state.st-lose{background:#eef1f4;border-color:#d8dde3;}
+  .sc-state.st-lose .ssk,.sc-state.st-lose .ssv{color:#5b6675;}
+
+  /* 営業カード：担当者別内訳（アコーディオン内） */
+  .staff-list{display:flex;flex-direction:column;gap:6px;width:100%;}
+  .staff-row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+  .staff-row .sr-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .staff-row .sr-name{font-size:12px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .staff-row .sr-rate{font-size:11px;font-weight:800;white-space:nowrap;flex-shrink:0;}
+  .staff-row .sr-rate.j-good{color:var(--green);} .staff-row .sr-rate.j-ok{color:var(--amber);}
+  .staff-row .sr-rate.j-bad{color:var(--red);} .staff-row .sr-rate.j-muted{color:var(--mute);}
+  .staff-row .sr-stats{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:5px;font-size:10.5px;color:var(--sub);}
+  .staff-row .sr-stats em{font-style:normal;font-weight:700;}
+
   /* ===== レスポンシブ（スマホ：サイドバー→上部） ===== */
   @media(max-width:860px){
     .app{flex-direction:column;}
@@ -335,6 +371,7 @@ const API = "https://script.google.com/macros/s/AKfycbwdE79zdfuPRBLenmMKqI0aIKxo
 const URL_SUMMARY = API + "?type=summary";
 const URL_HISTORY = API + "?type=history";
 const URL_RUN     = API + "?type=run"; // updateAll() を手動実行
+const URL_SALES   = API + "?type=sales"; // 営業分析データ
 
 /* ============================================================
    ダミーデータ（取得失敗時のフォールバック）
@@ -367,6 +404,43 @@ const DUMMY_HISTORY = {
     {period:"2026-06-18〜2026-06-24",status:"配信中",score:"🔥 好調",spend:20564,opt:6,cpa:3427,day1:3,finish:0,consult:0,close:0,revenue:0,roas:0,adKey:"lp02-cp2-non-056-31-20",image:""},
     {period:"2026-06-18〜2026-06-24",status:"配信中",score:"🔥 好調",spend:25915,opt:9,cpa:2879,day1:4,finish:2,consult:1,close:0,revenue:0,roas:0,adKey:"lp05-cp6-pet-w067-f23-32",image:""},
   ],
+};
+// 営業データのダミー（取得失敗時のフォールバック。不明1件を含む6件）
+const DUMMY_SALES = {
+  ok:true,
+  sales:{
+    byStaff:[
+      {staff:"横本恭子", applied:17, close:5, pending:2, lose:10, rate:63, rateNum:"5/8", revenue:2450000},
+      {staff:"田中亮",   applied:11, close:3, pending:1, lose:7,  rate:43, rateNum:"3/7", revenue:1470000},
+      {staff:"佐藤美咲", applied:6,  close:1, pending:0, lose:5,  rate:17, rateNum:"1/6", revenue:490000},
+    ],
+    byCreative:[
+      {adKey:"lp05-cp6-pet-w067-f23-32", applied:9, close:3, pending:1, lose:5, rate:60, rateNum:"3/5", revenue:1470000,
+        byStaff:[
+          {staff:"横本恭子", applied:6, close:2, pending:1, lose:3, rate:67, rateNum:"2/3", revenue:980000},
+          {staff:"田中亮",   applied:3, close:1, pending:0, lose:2, rate:33, rateNum:"1/3", revenue:490000},
+        ]},
+      {adKey:"lp02-cp2-non-056-31-20", applied:7, close:2, pending:1, lose:4, rate:50, rateNum:"2/4", revenue:980000,
+        byStaff:[
+          {staff:"横本恭子", applied:4, close:1, pending:1, lose:2, rate:50, rateNum:"1/2", revenue:490000},
+          {staff:"佐藤美咲", applied:3, close:1, pending:0, lose:2, rate:33, rateNum:"1/3", revenue:490000},
+        ]},
+      {adKey:"lp02-cp2-mamawork-050-35a", applied:5, close:1, pending:0, lose:4, rate:20, rateNum:"1/5", revenue:490000,
+        byStaff:[
+          {staff:"田中亮", applied:5, close:1, pending:0, lose:4, rate:20, rateNum:"1/5", revenue:490000},
+        ]},
+      {adKey:"lp07-cp3-side-021-44b", applied:4, close:2, pending:0, lose:2, rate:67, rateNum:"2/3", revenue:980000,
+        byStaff:[
+          {staff:"横本恭子", applied:4, close:2, pending:0, lose:2, rate:67, rateNum:"2/3", revenue:980000},
+        ]},
+      {adKey:"lp03-cp1-free-088-12c", applied:3, close:0, pending:1, lose:2, rate:null, rateNum:"0/2", revenue:0,
+        byStaff:[
+          {staff:"佐藤美咲", applied:3, close:0, pending:1, lose:2, rate:null, rateNum:"0/2", revenue:0},
+        ]},
+      {adKey:"広告キー不明", applied:14, close:3, pending:2, lose:9, rate:25, rateNum:"3/12", revenue:1470000, byStaff:[]},
+    ],
+    unknownCount:14,
+  },
 };
 
 /* ============================================================
@@ -474,6 +548,22 @@ function cntDash(v){ return isNum(v) ? comma(v) : "—"; }
 function ratePct(v){ return (v==null || v==="") ? "—" : Math.round(Number(v)*100)+"%"; }
 // JSON行の成約率文字列（例 "33.3%" / ""）をそのまま表示。空は「—」
 function rateStr(v){ const s=(v==null)?"":String(v).trim(); return s==="" ? "—" : s; }
+// 営業：成約率（数値%）→ 「67%（5/8）」。null は「—」
+function salesRate(rate, rateNum){
+  if(rate==null || rate==="") return "—";
+  const base = Math.round(Number(rate))+"%";
+  return rateNum ? base+"（"+rateNum+"）" : base;
+}
+// 営業：成約率の色分け（高=緑 / 中=黄 / 低=赤 / 値なし=グレー）
+function salesRateCls(rate){
+  if(rate==null || rate==="") return "j-muted";
+  const v=Number(rate);
+  if(v>=50) return "j-good";
+  if(v>=25) return "j-ok";
+  return "j-bad";
+}
+// 広告キー不明（空 or「不明」を含む）→ クリエイティブ別カードから除外
+function isUnknownAdKey(k){ const s=String(k||"").trim(); return s==="" || s.indexOf("不明")>=0; }
 // 総売上 = OWNER'S(revenue) + セルフ + サロン
 function totalRevenueOf(row){ return (N(row.revenue)||0)+(N(row.selfstudyRevenue)||0)+(N(row.salonRevenue)||0); }
 // 旧プラン成約数 = 成約 − Light − Premium − Black（JSONに専用キーが無いため引き算。負にしない）
@@ -1032,6 +1122,130 @@ function Search({data}){
 }
 
 /* ============================================================
+   ④ 営業分析（type=sales × creatives台帳をマージ）
+============================================================ */
+// カード内：担当者別の内訳アコーディオン（デフォルト閉）
+function StaffBreakdown({list}){
+  const [open,setOpen]=useState(false);
+  const staff=list||[];
+  return (
+    <div className="pd">
+      <button className={"pd-head"+(open?" open":"")} onClick={()=>setOpen(o=>!o)}>
+        <span className="pd-ic"><Icon name="users" size={14} /></span>
+        <span className="pd-title">担当者別の内訳</span>
+        <span className="pd-cnt">（{staff.length}名）</span>
+        <span className="pd-chev"><Icon name={open?"chevron-up":"chevron-down"} size={16} /></span>
+      </button>
+      {open? (
+        <div className="pd-body" style={{display:"block"}}>
+          {staff.length? (
+            <div className="staff-list">
+              {staff.map((s,i)=>(
+                <div className="staff-row" key={i}>
+                  <div className="sr-top">
+                    <span className="sr-name" title={s.staff}>{s.staff||"（担当者なし）"}</span>
+                    <span className={"sr-rate "+salesRateCls(s.rate)}>成約率 {salesRate(s.rate,s.rateNum)}</span>
+                  </div>
+                  <div className="sr-stats">
+                    <em>申込 {cntDash(s.applied)}</em>
+                    <em>成約 {cntDash(s.close)}</em>
+                    <em>検討中 {cntDash(s.pending)}</em>
+                    <em>不成約 {cntDash(s.lose)}</em>
+                    <em>売上 {yen0(s.revenue)}</em>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ):<div className="pd-empty">担当者データがありません</div>}
+        </div>
+      ):null}
+    </div>
+  );
+}
+
+// クリエイティブ別 営業実績カード（画像・タイトルは台帳メタから）
+function SalesCard({s, meta}){
+  const img = (meta && meta.image) || "";
+  return (
+    <div className="cc">
+      <KV src={img} alt={s.adKey} />
+      <div className="body">
+        <div className="ck">{s.adKey}</div>
+        {meta && meta.title? <div className="ctitle">{meta.title}</div>:null}
+
+        <div className="fm-top" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+          <div className="fm-cell"><span>説明会申込</span><b>{cntDash(s.applied)}名</b></div>
+          <div className="fm-cell"><span>売上</span><b>{yen0(s.revenue)}</b></div>
+        </div>
+
+        <div className="sc-states">
+          <div className="sc-state st-close"><div className="ssk">成約</div><div className="ssv">{cntDash(s.close)}</div></div>
+          <div className="sc-state st-pending"><div className="ssk">検討中</div><div className="ssv">{cntDash(s.pending)}</div></div>
+          <div className="sc-state st-lose"><div className="ssk">不成約</div><div className="ssv">{cntDash(s.lose)}</div></div>
+        </div>
+
+        <div className="fm-top" style={{gridTemplateColumns:"1fr"}}>
+          <div className="fm-cell"><span>成約率</span><b className={salesRateCls(s.rate)}>{salesRate(s.rate,s.rateNum)}</b></div>
+        </div>
+
+        <StaffBreakdown list={s.byStaff} />
+      </div>
+    </div>
+  );
+}
+
+function SalesAnalysis({sales, summary}){
+  const data = sales || {};
+  const byCreative = data.byCreative || [];
+  const byStaff = data.byStaff || [];
+  const unknownCount = N(data.unknownCount) || 0;
+  const metaMap = useMemo(()=>{ const m={}; ((summary&&summary.creatives)||[]).forEach(c=>{m[c.adKey]=c;}); return m; },[summary]);
+  const cards = useMemo(()=> byCreative.filter(c=>!isUnknownAdKey(c.adKey)), [byCreative]);
+
+  if(!byCreative.length && !byStaff.length){
+    return <div className="empty">営業データがありません</div>;
+  }
+
+  return (
+    <div>
+      {byStaff.length? (
+        <div>
+          <div className="sec-title">担当者別サマリー（全体）</div>
+          <div className="sales-summary">
+            {byStaff.map((s,i)=>(
+              <div className="staff-chip" key={i}>
+                <div className="sc-name"><Icon name="user-plus" size={14} />{s.staff||"（担当者なし）"}</div>
+                <div className="sc-stats">
+                  <em>申込 {cntDash(s.applied)}</em>
+                  <em>成約 {cntDash(s.close)}</em>
+                  <em>検討中 {cntDash(s.pending)}</em>
+                  <em>不成約 {cntDash(s.lose)}</em>
+                  <em className={salesRateCls(s.rate)}>成約率 {salesRate(s.rate,s.rateNum)}</em>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ):null}
+
+      {unknownCount? (
+        <div className="sales-note">
+          <Icon name="triangle-alert" size={15} />
+          広告外経由（オーガニック等）：{comma(unknownCount)} 件　※広告キー不明のため、クリエイティブ別カードには含めていません
+        </div>
+      ):null}
+
+      <div className="sec-title">クリエイティブ別 営業実績（{cards.length}件）</div>
+      {cards.length? (
+        <div className="cgrid">
+          {cards.map((c,i)=><SalesCard key={(c.adKey||"")+i} s={c} meta={metaMap[c.adKey]} />)}
+        </div>
+      ):<div className="empty">クリエイティブ別の営業データがありません</div>}
+    </div>
+  );
+}
+
+/* ============================================================
    データソースバッジ
 ============================================================ */
 function SourceBadge({source}){
@@ -1050,6 +1264,7 @@ function SourceBadge({source}){
 const TABS=[
   {id:"dash", icon:"layout-dashboard", label:"ダッシュボード"},
   {id:"crea", icon:"images", label:"クリエイティブ一覧"},
+  {id:"sales", icon:"handshake", label:"営業分析"},
   {id:"hist", icon:"line-chart", label:"7日間履歴"},
   {id:"search", icon:"search", label:"検索"},
 ];
@@ -1058,21 +1273,24 @@ function App(){
   const [tab,setTab]=useState("dash");
   const [summary,setSummary]=useState(null);
   const [history,setHistory]=useState(null);
+  const [sales,setSales]=useState(null);
   const [loading,setLoading]=useState(true);
   const [warn,setWarn]=useState("");
   const [showWarn,setShowWarn]=useState(true);
-  const [source,setSource]=useState({summary:false, history:false});
+  const [source,setSource]=useState({summary:false, history:false, sales:false});
   const [running,setRunning]=useState(false); // 手動更新（updateAll）実行中
   const [runMsg,setRunMsg]=useState("");       // 手動更新の失敗メッセージ
 
   async function load(){
     setLoading(true); setWarn(""); setShowWarn(true);
-    let s=null,h=null,sLive=false,hLive=false;
+    let s=null,h=null,sa=null,sLive=false,hLive=false,saLive=false;
     try{ s=await jsonpRetry(URL_SUMMARY, 2, 28000); sLive=true; }catch(e){ s=DUMMY_SUMMARY; console.warn("[OWNER'S] summary 取得失敗:", e.message); }
     try{ h=await jsonp(URL_HISTORY, 15000); hLive=true; }catch(e){ h=DUMMY_HISTORY; console.warn("[OWNER'S] history 取得失敗:", e.message); }
+    try{ const raw=await jsonpRetry(URL_SALES, 2, 28000); sa=(raw&&raw.sales)?raw.sales:raw; saLive=true; }catch(e){ sa=DUMMY_SALES.sales; console.warn("[OWNER'S] sales 取得失敗:", e.message); }
     console.log("%c[OWNER'S] type=summary : "+(sLive?"✅ 実データ取得 成功":"⚠️ 失敗→ダミー使用"),"color:"+(sLive?"#16a34a":"#c2820b")+";font-weight:bold");
     console.log("%c[OWNER'S] type=history : "+(hLive?"✅ 実データ取得 成功":"⚠️ 失敗→ダミー使用"),"color:"+(hLive?"#16a34a":"#c2820b")+";font-weight:bold");
-    setSummary(s); setHistory(h); setSource({summary:sLive, history:hLive});
+    console.log("%c[OWNER'S] type=sales   : "+(saLive?"✅ 実データ取得 成功":"⚠️ 失敗→ダミー使用"),"color:"+(saLive?"#16a34a":"#c2820b")+";font-weight:bold");
+    setSummary(s); setHistory(h); setSales(sa); setSource({summary:sLive, history:hLive, sales:saLive});
     if(!sLive || !hLive){
       setWarn((!sLive && !hLive)
         ? "実データの取得に失敗したため、サンプル（ダミー）データを表示しています。"
@@ -1148,6 +1366,7 @@ function App(){
 
           {tab==="dash"   && <Dashboard data={summary} />}
           {tab==="crea"   && <Creatives data={summary} />}
+          {tab==="sales"  && <SalesAnalysis sales={sales} summary={summary} />}
           {tab==="hist"   && <History history={history} summary={summary} />}
           {tab==="search" && <Search data={summary} />}
         </div>
