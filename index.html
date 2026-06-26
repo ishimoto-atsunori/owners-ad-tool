@@ -69,6 +69,12 @@
   .srcbadge.live .srcdot{background:#16a34a;}
   .srcbadge.partial .srcdot{background:#e0a000;}
   .srcbadge.dummy .srcdot{background:#d83b3f;}
+  .reload{background:var(--pp);border:none;color:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:800;
+    font-family:inherit;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(108,76,240,.3);transition:all .15s;}
+  .reload:hover{background:var(--pp2);}
+  .reload:active{transform:scale(.97);}
+  .reload:disabled{background:var(--mute);box-shadow:none;cursor:not-allowed;opacity:.85;}
+  @media(max-width:520px){.reload{font-size:11px;padding:8px 12px;}}
   .bell{position:relative;background:var(--panel2);border:1px solid var(--line);width:40px;height:40px;border-radius:12px;
     cursor:pointer;font-size:17px;color:var(--sub);}
   .bell .dot{position:absolute;top:8px;right:9px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff;}
@@ -211,6 +217,27 @@
   .fm-plan>span{font-size:10.5px;color:var(--mute);font-weight:700;}
   .fm-plan em{font-style:normal;font-size:11px;font-weight:700;background:var(--pp-soft);color:var(--pp2);border-radius:999px;padding:3px 10px;}
 
+  /* ===== 課題提出進捗 詳細（クリエイティブカード内アコーディオン） ===== */
+  .pd{border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-top:2px;background:var(--panel2);}
+  .pd-head{width:100%;display:flex;align-items:center;gap:7px;padding:9px 11px;background:transparent;border:none;cursor:pointer;font-family:inherit;text-align:left;transition:background .15s;}
+  .pd-head:hover{background:rgba(0,0,0,.03);}
+  .pd-head.open{border-bottom:1px solid var(--line);}
+  .pd-ic{color:var(--pp2);display:flex;flex-shrink:0;}
+  .pd-title{font-size:12px;font-weight:800;color:var(--ink);}
+  .pd-cnt{font-size:11.5px;font-weight:700;color:var(--mute);}
+  .pd-chev{margin-left:auto;color:var(--mute);display:flex;}
+  .pd-body{padding:10px 11px;display:flex;flex-wrap:wrap;gap:6px;max-height:300px;overflow-y:auto;}
+  .pd-empty{font-size:11.5px;color:var(--mute);padding:2px;}
+  .pchip{display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 9px;max-width:100%;}
+  .pname{font-size:11px;font-weight:700;color:var(--ink);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pbadge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid transparent;white-space:nowrap;}
+  .pbadge.pb-close{background:#e5484d;color:#fff;}        /* 成約：赤背景・白文字 */
+  .pbadge.pb-consult{background:#f5d90a;color:#1a1a1a;}   /* 説明会申込：黄背景・黒文字 */
+  .pbadge.pb-grad{background:#f59e0b;color:#1a1a1a;}      /* 卒業LIVE予約後：オレンジ背景・黒文字 */
+  .pbadge.pb-drop{background:#1a1a1a;color:#fff;}         /* 提出後に脱落：黒背景・白文字 */
+  .pbadge.pb-day{background:#ffe0c2;color:#7a3e00;}       /* 提出済み(継続中)：肌色背景・黒文字 */
+  .pbadge.pb-other{background:#eef1f4;color:#5b6675;}
+
   /* ===== 履歴アコーディオン ===== */
   .acc{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-card);margin-bottom:12px;overflow:hidden;}
   .acc-head{width:100%;display:flex;align-items:center;gap:12px;padding:15px 18px;background:transparent;border:none;cursor:pointer;font-family:inherit;text-align:left;transition:background .15s;}
@@ -302,6 +329,7 @@ function Icon({name, size, sw, className, style}){
 const API = "https://script.google.com/macros/s/AKfycbwdE79zdfuPRBLenmMKqI0aIKxokb_K4CvVZEQ2shQWxwrn5FXB79DHeP__6YH1--Xslw/exec";
 const URL_SUMMARY = API + "?type=summary";
 const URL_HISTORY = API + "?type=history";
+const URL_RUN     = API + "?type=run"; // updateAll() を手動実行
 
 /* ============================================================
    ダミーデータ（取得失敗時のフォールバック）
@@ -679,8 +707,51 @@ function CreativeCard({c, mt}){
   );
 }
 
+/* ====== 課題提出進捗 詳細（クリエイティブカード内アコーディオン） ====== */
+// stage文字列 → バッジ用クラス。「脱落」を最優先で判定（"Day○提出後に脱落"対策）。
+function stageBadgeCls(stage){
+  const s=String(stage||"");
+  if(s.indexOf("脱落")>=0)   return "pb-drop";     // 黒背景・白文字
+  if(s.indexOf("成約")>=0)   return "pb-close";    // 赤背景・白文字
+  if(s.indexOf("説明会")>=0) return "pb-consult";  // 黄背景・黒文字
+  if(s.indexOf("卒業")>=0)   return "pb-grad";     // オレンジ背景・黒文字
+  if(s.indexOf("提出済み")>=0) return "pb-day";    // 肌色背景・黒文字（継続中）
+  return "pb-other";
+}
+const PB_RANK={"pb-close":0,"pb-consult":1,"pb-grad":2,"pb-drop":3,"pb-day":4,"pb-other":5};
+// 各カードに表示する課題提出者リスト（現在の期間に連動）。デフォルト閉。
+function ProgressDetail({items}){
+  const [open,setOpen]=useState(false);
+  const list=items||[];
+  // 段階ごとにクラスタリング（成約→説明会→卒業→脱落→提出済み→その他）。同段階内は元の順を維持。
+  const sorted=useMemo(()=>list
+    .map((p,i)=>({p,i,r:PB_RANK[stageBadgeCls(p.stage)]}))
+    .sort((a,b)=> a.r!==b.r ? a.r-b.r : a.i-b.i)
+    .map(x=>x.p), [list]);
+  return (
+    <div className="pd">
+      <button className={"pd-head"+(open?" open":"")} onClick={()=>setOpen(o=>!o)}>
+        <span className="pd-ic"><Icon name="users" size={14} /></span>
+        <span className="pd-title">課題提出進捗 詳細</span>
+        <span className="pd-cnt">（{list.length}名）</span>
+        <span className="pd-chev"><Icon name={open?"chevron-up":"chevron-down"} size={16} /></span>
+      </button>
+      {open? (
+        <div className="pd-body">
+          {sorted.length? sorted.map((p,i)=>(
+            <span className="pchip" key={i}>
+              <span className="pname" title={p.name}>{p.name||"(名前なし)"}</span>
+              <span className={"pbadge "+stageBadgeCls(p.stage)}>{p.stage}</span>
+            </span>
+          )) : <div className="pd-empty">この期間の課題提出者はいません</div>}
+        </div>
+      ):null}
+    </div>
+  );
+}
+
 // 期間配列の1行（クリエイティブ）を全指標＋単価で表示
-function FunnelCard({row, meta, targets, isDaily}){
+function FunnelCard({row, meta, targets, isDaily, period}){
   const si=statusInfo(row.status);
   const img = row.image || (meta&&meta.image) || "";
   const rating = ratingFromText(row.score);
@@ -735,6 +806,8 @@ function FunnelCard({row, meta, targets, isDaily}){
           <div className="fm-cell"><span>ROAS</span><b className={roasCls(row.roas,isDaily)}>{roasPct(row.roas)}</b></div>
         </div>
         {isDaily? <div className="note2">※成約はオプトの数日後に反映</div>:null}
+
+        <ProgressDetail items={(meta && meta.progressDetail && meta.progressDetail[period]) || []} />
 
         {rating? (
           <div className={"scoreline sc-"+rating.cls}>
@@ -801,7 +874,7 @@ function Creatives({data}){
       </div>
       {view.length? (
         <div className="cgrid">
-          {view.map((x,i)=><FunnelCard key={x.row.adKey+i} row={x.row} meta={x.meta} targets={targets} isDaily={isDaily} />)}
+          {view.map((x,i)=><FunnelCard key={x.row.adKey+i} row={x.row} meta={x.meta} targets={targets} isDaily={isDaily} period={period} />)}
         </div>
       ):<div className="empty">該当するクリエイティブはありません</div>}
     </div>
@@ -984,6 +1057,8 @@ function App(){
   const [warn,setWarn]=useState("");
   const [showWarn,setShowWarn]=useState(true);
   const [source,setSource]=useState({summary:false, history:false});
+  const [running,setRunning]=useState(false); // 手動更新（updateAll）実行中
+  const [runMsg,setRunMsg]=useState("");       // 手動更新の失敗メッセージ
 
   async function load(){
     setLoading(true); setWarn(""); setShowWarn(true);
@@ -1000,6 +1075,23 @@ function App(){
     }
     setLoading(false);
   }
+
+  // 手動更新：GASの updateAll() を実行 → 完了後に最新データを再取得
+  async function runUpdate(){
+    if(running) return;
+    setRunning(true); setRunMsg("");
+    try{
+      const res = await jsonp(URL_RUN, 240000); // updateAll 実行（最大4分待つ）
+      if(!res || res.ran!==true) throw new Error("run NG");
+      await load(); // 完了後に type=summary / type=history を再取得（画面・最終更新を更新）
+    }catch(e){
+      console.warn("[OWNER'S] 手動更新 失敗:", e.message);
+      setRunMsg("更新に失敗しました。もう一度お試しください。");
+    }finally{
+      setRunning(false);
+    }
+  }
+
   useEffect(()=>{ load(); },[]);
 
   if(loading || !summary){
@@ -1021,6 +1113,9 @@ function App(){
           <div className="page-title">{pageTitle}</div>
           <div className="tb-right">
             <SourceBadge source={source} />
+            <button className="reload" onClick={runUpdate} disabled={running}>
+              {running ? "更新中…（1〜3分かかります）" : "↻ 更新"}
+            </button>
             <button className="bell" title="通知"><Icon name="bell" size={19} /><span className="dot"></span></button>
             <div className="who">
               <div className="av">RT</div>
@@ -1030,6 +1125,12 @@ function App(){
         </div>
 
         <div className="content">
+          {runMsg? (
+            <div className="banner">
+              <span style={{display:"flex",alignItems:"center",gap:"8px"}}><Icon name="triangle-alert" size={18} />{runMsg}</span>
+              <button className="bx" onClick={()=>setRunMsg("")}>×</button>
+            </div>
+          ):null}
           {warn && showWarn? (
             <div className="banner">
               <span style={{display:"flex",alignItems:"center",gap:"8px"}}><Icon name="triangle-alert" size={18} />{warn}</span>
