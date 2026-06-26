@@ -171,6 +171,11 @@
   .scoreline.sc-mid .sc-ic{color:var(--amber);}
   .scoreline.sc-bad .sc-ic{color:var(--red);}
   .ctext{font-size:11.5px;color:var(--mute);line-height:1.5;max-height:3.6em;overflow:hidden;}
+  /* 広告文（メインテキスト）：エリア内だけ縦スクロールで全文表示（カード高さは伸ばさない） */
+  .ctext-body{max-height:6em;overflow-y:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
+  .ctext-body::-webkit-scrollbar{width:6px;}
+  .ctext-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+  .ctext-body::-webkit-scrollbar-track{background:transparent;}
 
   /* ===== 履歴テーブル（グラフなし） ===== */
   .hcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-card);overflow:hidden;margin-bottom:16px;}
@@ -701,7 +706,7 @@ function CreativeCard({c, mt}){
             <span className="sc-tx">{formatScore(mt.score)}</span>
           </div>
         ):null}
-        {c.body? <div className="ctext">{c.body}</div>:null}
+        {c.body? <div className="ctext ctext-body">{c.body}</div>:null}
       </div>
     </div>
   );
@@ -815,7 +820,7 @@ function FunnelCard({row, meta, targets, isDaily, period}){
             <span className="sc-tx">{formatScore(row.score)}</span>
           </div>
         ):null}
-        {meta&&meta.body? <div className="ctext">{meta.body}</div>:null}
+        {meta&&meta.body? <div className="ctext ctext-body">{meta.body}</div>:null}
       </div>
     </div>
   );
