@@ -274,8 +274,8 @@
   .sales-note svg{color:#a96809;flex-shrink:0;}
 
   /* 営業カード：成約／検討中／不成約 */
-  .sc-states{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px;}
-  .sc-state{border-radius:11px;padding:9px 6px;text-align:center;border:1px solid transparent;}
+  .sc-states{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:2px;}
+  .sc-state{border-radius:11px;padding:9px 4px;text-align:center;border:1px solid transparent;}
   .sc-state .ssk{font-size:9.5px;font-weight:700;}
   .sc-state .ssv{font-size:17px;font-weight:800;margin-top:2px;}
   .sc-state.st-close{background:var(--green-bg);border-color:#bce7c8;}
@@ -284,6 +284,9 @@
   .sc-state.st-pending .ssk,.sc-state.st-pending .ssv{color:#a96809;}
   .sc-state.st-lose{background:#eef1f4;border-color:#d8dde3;}
   .sc-state.st-lose .ssk,.sc-state.st-lose .ssv{color:#5b6675;}
+  /* 未開催：結果未確定が分かるよう、薄い背景＋点線枠＋淡色 */
+  .sc-state.st-nothd{background:var(--panel2);border-style:dashed;border-color:#d8dde3;}
+  .sc-state.st-nothd .ssk,.sc-state.st-nothd .ssv{color:var(--mute);}
 
   /* 営業カード：担当者別内訳（アコーディオン内） */
   .staff-list{display:flex;flex-direction:column;gap:6px;width:100%;}
@@ -295,6 +298,7 @@
   .staff-row .sr-rate.j-bad{color:var(--red);} .staff-row .sr-rate.j-muted{color:var(--mute);}
   .staff-row .sr-stats{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:5px;font-size:10.5px;color:var(--sub);}
   .staff-row .sr-stats em{font-style:normal;font-weight:700;}
+  .staff-row .sr-stats em.j-muted{color:var(--mute);}
 
   /* ===== レスポンシブ（スマホ：サイドバー→上部） ===== */
   @media(max-width:860px){
@@ -410,34 +414,34 @@ const DUMMY_SALES = {
   ok:true,
   sales:{
     byStaff:[
-      {staff:"横本恭子", applied:17, close:5, pending:2, lose:10, rate:63, rateNum:"5/8", revenue:2450000},
-      {staff:"田中亮",   applied:11, close:3, pending:1, lose:7,  rate:43, rateNum:"3/7", revenue:1470000},
-      {staff:"佐藤美咲", applied:6,  close:1, pending:0, lose:5,  rate:17, rateNum:"1/6", revenue:490000},
+      {staff:"横本恭子", applied:17, close:5, pending:2, lose:3, notHeld:7, rate:63, rateNum:"5/8", revenue:2450000},
+      {staff:"田中亮",   applied:11, close:3, pending:1, lose:4, notHeld:3, rate:43, rateNum:"3/7", revenue:1470000},
+      {staff:"佐藤美咲", applied:6,  close:1, pending:0, lose:5, notHeld:0, rate:17, rateNum:"1/6", revenue:490000},
     ],
     byCreative:[
-      {adKey:"lp05-cp6-pet-w067-f23-32", applied:9, close:3, pending:1, lose:5, rate:60, rateNum:"3/5", revenue:1470000,
+      {adKey:"lp05-cp6-pet-w067-f23-32", applied:9, close:3, pending:1, lose:2, notHeld:3, rate:60, rateNum:"3/5", revenue:1470000,
         byStaff:[
-          {staff:"横本恭子", applied:6, close:2, pending:1, lose:3, rate:67, rateNum:"2/3", revenue:980000},
-          {staff:"田中亮",   applied:3, close:1, pending:0, lose:2, rate:33, rateNum:"1/3", revenue:490000},
+          {staff:"横本恭子", applied:6, close:2, pending:1, lose:1, notHeld:2, rate:67, rateNum:"2/3", revenue:980000},
+          {staff:"田中亮",   applied:3, close:1, pending:0, lose:1, notHeld:1, rate:50, rateNum:"1/2", revenue:490000},
         ]},
-      {adKey:"lp02-cp2-non-056-31-20", applied:7, close:2, pending:1, lose:4, rate:50, rateNum:"2/4", revenue:980000,
+      {adKey:"lp02-cp2-non-056-31-20", applied:7, close:2, pending:1, lose:1, notHeld:3, rate:67, rateNum:"2/3", revenue:980000,
         byStaff:[
-          {staff:"横本恭子", applied:4, close:1, pending:1, lose:2, rate:50, rateNum:"1/2", revenue:490000},
-          {staff:"佐藤美咲", applied:3, close:1, pending:0, lose:2, rate:33, rateNum:"1/3", revenue:490000},
+          {staff:"横本恭子", applied:4, close:1, pending:1, lose:0, notHeld:2, rate:100, rateNum:"1/1", revenue:490000},
+          {staff:"佐藤美咲", applied:3, close:1, pending:0, lose:1, notHeld:1, rate:50, rateNum:"1/2", revenue:490000},
         ]},
-      {adKey:"lp02-cp2-mamawork-050-35a", applied:5, close:1, pending:0, lose:4, rate:20, rateNum:"1/5", revenue:490000,
+      {adKey:"lp02-cp2-mamawork-050-35a", applied:5, close:1, pending:0, lose:4, notHeld:0, rate:20, rateNum:"1/5", revenue:490000,
         byStaff:[
-          {staff:"田中亮", applied:5, close:1, pending:0, lose:4, rate:20, rateNum:"1/5", revenue:490000},
+          {staff:"田中亮", applied:5, close:1, pending:0, lose:4, notHeld:0, rate:20, rateNum:"1/5", revenue:490000},
         ]},
-      {adKey:"lp07-cp3-side-021-44b", applied:4, close:2, pending:0, lose:2, rate:67, rateNum:"2/3", revenue:980000,
+      {adKey:"lp07-cp3-side-021-44b", applied:4, close:2, pending:0, lose:1, notHeld:1, rate:67, rateNum:"2/3", revenue:980000,
         byStaff:[
-          {staff:"横本恭子", applied:4, close:2, pending:0, lose:2, rate:67, rateNum:"2/3", revenue:980000},
+          {staff:"横本恭子", applied:4, close:2, pending:0, lose:1, notHeld:1, rate:67, rateNum:"2/3", revenue:980000},
         ]},
-      {adKey:"lp03-cp1-free-088-12c", applied:3, close:0, pending:1, lose:2, rate:null, rateNum:"0/2", revenue:0,
+      {adKey:"lp03-cp1-free-088-12c", applied:3, close:0, pending:1, lose:2, notHeld:0, rate:null, rateNum:"0/2", revenue:0,
         byStaff:[
-          {staff:"佐藤美咲", applied:3, close:0, pending:1, lose:2, rate:null, rateNum:"0/2", revenue:0},
+          {staff:"佐藤美咲", applied:3, close:0, pending:1, lose:2, notHeld:0, rate:null, rateNum:"0/2", revenue:0},
         ]},
-      {adKey:"広告キー不明", applied:14, close:3, pending:2, lose:9, rate:25, rateNum:"3/12", revenue:1470000, byStaff:[]},
+      {adKey:"広告キー不明", applied:14, close:3, pending:2, lose:9, notHeld:0, rate:25, rateNum:"3/12", revenue:1470000, byStaff:[]},
     ],
     unknownCount:14,
   },
@@ -1127,7 +1131,7 @@ function Search({data}){
 // カード内：担当者別の内訳アコーディオン（デフォルト閉）
 function StaffBreakdown({list}){
   const [open,setOpen]=useState(false);
-  const staff=list||[];
+  const staff=(list||[]).filter(s=>N(s.applied)>0); // 申込0の担当者は非表示（表示のみ）
   return (
     <div className="pd">
       <button className={"pd-head"+(open?" open":"")} onClick={()=>setOpen(o=>!o)}>
@@ -1151,6 +1155,7 @@ function StaffBreakdown({list}){
                     <em>成約 {cntDash(s.close)}</em>
                     <em>検討中 {cntDash(s.pending)}</em>
                     <em>不成約 {cntDash(s.lose)}</em>
+                    <em className="j-muted">未開催 {cntDash(s.notHeld)}</em>
                     <em>売上 {yen0(s.revenue)}</em>
                   </div>
                 </div>
@@ -1182,6 +1187,7 @@ function SalesCard({s, meta}){
           <div className="sc-state st-close"><div className="ssk">成約</div><div className="ssv">{cntDash(s.close)}</div></div>
           <div className="sc-state st-pending"><div className="ssk">検討中</div><div className="ssv">{cntDash(s.pending)}</div></div>
           <div className="sc-state st-lose"><div className="ssk">不成約</div><div className="ssv">{cntDash(s.lose)}</div></div>
+          <div className="sc-state st-nothd"><div className="ssk">未開催</div><div className="ssv">{cntDash(s.notHeld)}</div></div>
         </div>
 
         <div className="fm-top" style={{gridTemplateColumns:"1fr"}}>
@@ -1197,7 +1203,7 @@ function SalesCard({s, meta}){
 function SalesAnalysis({sales, summary}){
   const data = sales || {};
   const byCreative = data.byCreative || [];
-  const byStaff = data.byStaff || [];
+  const byStaff = (data.byStaff || []).filter(s=>N(s.applied)>0); // 申込0の担当者は非表示（表示のみ）
   const unknownCount = N(data.unknownCount) || 0;
   const metaMap = useMemo(()=>{ const m={}; ((summary&&summary.creatives)||[]).forEach(c=>{m[c.adKey]=c;}); return m; },[summary]);
   const cards = useMemo(()=> byCreative.filter(c=>!isUnknownAdKey(c.adKey)), [byCreative]);
@@ -1220,6 +1226,7 @@ function SalesAnalysis({sales, summary}){
                   <em>成約 {cntDash(s.close)}</em>
                   <em>検討中 {cntDash(s.pending)}</em>
                   <em>不成約 {cntDash(s.lose)}</em>
+                  <em className="j-muted">未開催 {cntDash(s.notHeld)}</em>
                   <em className={salesRateCls(s.rate)}>成約率 {salesRate(s.rate,s.rateNum)}</em>
                 </div>
               </div>
