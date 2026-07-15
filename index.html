@@ -292,6 +292,8 @@
   .aib-table td{font-size:11.5px;color:var(--ink);line-height:1.5;padding:6px 9px;border-top:1px solid var(--line);vertical-align:top;}
   .aib-table tr:first-child td{border-top:none;}
   .aib-table .aib-n{width:52px;text-align:right;font-weight:800;color:var(--pp2);white-space:nowrap;}
+  /* ▼ビルドタグ（サイドバー最下部・デプロイ反映確認用） */
+  .build-tag{font-size:9.5px;color:var(--mute);text-align:center;margin-top:8px;line-height:1.4;}
 
   /* ====== 課題回答ビューア（段階B） ====== */
   .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
@@ -349,6 +351,25 @@
   .staff-chip .sc-stats em{font-style:normal;font-weight:700;color:var(--sub);}
   .staff-chip .sc-stats em.j-good{color:var(--green);} .staff-chip .sc-stats em.j-ok{color:var(--amber);}
   .staff-chip .sc-stats em.j-bad{color:var(--red);} .staff-chip .sc-stats em.j-muted{color:var(--mute);}
+  /* ▼担当者別 顧客明細テーブル（GAS v32R: byStaff[].details。折りたたみ式・デフォルト閉） */
+  .sc-dt{margin-top:7px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel2);}
+  .sc-dt-head{width:100%;display:flex;align-items:center;gap:6px;padding:7px 10px;background:transparent;border:none;cursor:pointer;
+    font-family:inherit;text-align:left;font-size:11.5px;font-weight:800;color:var(--sub);transition:background .15s;}
+  .sc-dt-head:hover{background:rgba(0,0,0,.03);}
+  .sc-dt-head svg{color:var(--pp2);flex-shrink:0;}
+  .sc-dt-head .cnt{font-weight:700;color:var(--mute);}
+  .sc-dt-head .chev{margin-left:auto;display:flex;color:var(--mute);}
+  .sc-dt-body{max-height:260px;overflow-y:auto;border-top:1px solid var(--line);background:var(--panel);}
+  .sc-dt table{width:100%;border-collapse:collapse;font-size:11.5px;}
+  .sc-dt td{padding:5px 10px;border-top:1px solid var(--line);color:var(--ink);vertical-align:middle;}
+  .sc-dt tr:first-child td{border-top:none;}
+  .sc-dt td.dt-name{font-weight:700;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sc-dt td.dt-amt{text-align:right;font-weight:700;white-space:nowrap;color:var(--sub);}
+  .dt-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:800;border:1px solid transparent;white-space:nowrap;}
+  .dt-badge.b-close{background:var(--green-bg);color:#15803d;border-color:#bce7c8;}
+  .dt-badge.b-pending{background:var(--amber-bg);color:#a96809;border-color:#ecd79a;}
+  .dt-badge.b-lose{background:var(--red-bg);color:#b02a2e;border-color:#f2c6c7;}
+  .dt-badge.b-nothd{background:var(--panel2);color:var(--mute);border-color:#d8dde3;border-style:dashed;}
   .sales-note{font-size:11.5px;color:var(--sub);background:var(--amber-bg);border:1px solid #ecd79a;border-radius:11px;
     padding:9px 12px;margin:0 0 18px;display:flex;align-items:center;gap:7px;line-height:1.45;}
   .sales-note svg{color:#a96809;flex-shrink:0;}
@@ -458,6 +479,11 @@ const URL_HISTORY = API + "?type=history";
 const URL_RUN     = API + "?type=run"; // updateAll() を手動実行
 const URL_SALES   = API + "?type=sales"; // 営業分析データ
 const URL_ANSWERS = API + "?type=answers"; // 課題回答（クリエイティブ別・遅延取得）
+
+// ▼ビルドタグ：いま開いているページがどの版かを即判別するための表示（サイドバー最下部＋起動時コンソール）。
+//   デプロイ反映確認用。ボタンBが見えない等の際は、まずこの表記が最新かを確認する（古ければキャッシュか別ページ）。
+const BUILD_TAG = "build 2026-07-15 / ボタンB＋営業明細（担当者別details）搭載版";
+console.log("%c[OWNER'S] " + BUILD_TAG, "color:#6c4cf0;font-weight:bold");
 
 /* ============================================================
    ダミーデータ（取得失敗時のフォールバック）
@@ -1577,6 +1603,52 @@ function AnswersViewer({answers, summary, state, onRetry}){
   );
 }
 
+/* ▼担当者別 顧客明細（GAS v32R: byStaff[].details）。RIDE/渡辺共用：どちらのAPIでも details が
+   来ていれば表示する汎用実装。details が空/未定義の担当者は何も出さない（既存表示のみ）。
+   並び順はAPIのまま（GAS側で面談日程昇順ソート済み）。
+   bg（H列背景色＝ステータス判定根拠）と src（WAC/代行屋）は画面に出さず、
+   行の title 属性（ホバーで面談日程・bg・srcを表示）と data-* 属性（DevTools確認用）にのみ保持。 */
+function dtStatusCls(st){
+  if(st==="成約") return "b-close";
+  if(st==="検討中") return "b-pending";
+  if(st==="不成約") return "b-lose";
+  return "b-nothd"; // 未開催・想定外値
+}
+function dtAmount(v){
+  if(typeof v==="number" && isFinite(v)) return "¥"+Math.round(v).toLocaleString("ja-JP"); // 数値→¥490,000形式
+  const s=String(v==null?"":v).trim();
+  return s? s : "—"; // テキスト→そのまま／空→ダッシュ
+}
+function StaffDetails({details}){
+  const [open,setOpen]=useState(false); // 明細が多い担当者（20件超等）を考慮し折りたたみ式（デフォルト閉）
+  const list=Array.isArray(details)? details : [];
+  if(!list.length) return null;
+  return (
+    <div className="sc-dt">
+      <button className="sc-dt-head" onClick={()=>setOpen(o=>!o)}>
+        <Icon name="file-text" size={13} />
+        明細を{open?"隠す":"表示"}<span className="cnt">（{list.length}件）</span>
+        <span className="chev"><Icon name={open?"chevron-up":"chevron-down"} size={14} /></span>
+      </button>
+      {open? (
+        <div className="sc-dt-body">
+          <table><tbody>
+            {list.map((d,i)=>(
+              <tr key={i}
+                  title={"面談日程: "+(d.date||"—")+" ／ 判定根拠(H列背景色): "+(d.bg||"—")+" ／ 出所: "+(d.src||"—")}
+                  data-bg={d.bg||""} data-src={d.src||""} data-date={d.date||""}>
+                <td className="dt-name" title={d.name||""}>{d.name||"—"}</td>
+                <td><span className={"dt-badge "+dtStatusCls(d.status)}>{d.status||"—"}</span></td>
+                <td className="dt-amt">{dtAmount(d.amount)}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        </div>
+      ):null}
+    </div>
+  );
+}
+
 function SalesAnalysis({sales, summary}){
   const data = sales || {};
   const byCreative = data.byCreative || [];
@@ -1598,6 +1670,7 @@ function SalesAnalysis({sales, summary}){
             {byStaff.map((s,i)=>(
               <div className="staff-chip" key={i}>
                 <div className="sc-name"><Icon name="user-plus" size={14} />{s.staff||"（担当者なし）"}</div>
+                <StaffDetails details={s.details} />
                 <div className="sc-stats">
                   <em>申込 {cntDash(s.applied)}</em>
                   <em>成約 {cntDash(s.close)}</em>
@@ -1810,6 +1883,7 @@ function Sidebar({tab, setTab, summary, onReload}){
             <div className="ab-s">代理店</div>
           </div>
         </div>
+        <div className="build-tag" title="デプロイ反映確認用のビルドタグ">{BUILD_TAG}</div>
       </div>
     </div>
   );
