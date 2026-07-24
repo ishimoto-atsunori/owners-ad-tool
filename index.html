@@ -415,8 +415,6 @@
   .tp-add{background:var(--pp);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13px;}
   .tp-add:hover{background:var(--pp2);}
   .tp-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);cursor:pointer;user-select:none;}
-  .tp-keylink{margin-left:auto;font-size:11px;color:var(--mute);background:none;border:none;cursor:pointer;text-decoration:underline;}
-  .tp-keylink:hover{color:var(--pp);}
   .tp-msg{font-size:12px;font-weight:700;color:var(--sub);}
   .tp-msg.ok{color:var(--green);} .tp-msg.err{color:var(--red);}
   .tp-list{display:flex;flex-direction:column;gap:10px;}
@@ -532,12 +530,11 @@ const URL_HISTORY = API + "?type=history";
 const URL_RUN     = API + "?type=run"; // updateAll() を手動実行
 const URL_SALES   = API + "?type=sales"; // 営業分析データ
 const URL_ANSWERS = API + "?type=answers"; // 課題回答（クリエイティブ別・遅延取得）
-const URL_TESTPLAN = API + "?type=testplan"; // テスト予定（一覧・閲覧はキー不要）
-const TESTPLAN_KEY_LS = "ownersAdTool_testplanWriteKey"; // 書き込みキーのlocalStorage保存名（ソースにキー本体は書かない）
+const URL_TESTPLAN = API + "?type=testplan"; // テスト予定（一覧）
 
 // ▼ビルドタグ：いま開いているページがどの版かを即判別するための表示（サイドバー最下部＋起動時コンソール）。
 //   デプロイ反映確認用。ボタンBが見えない等の際は、まずこの表記が最新かを確認する（古ければキャッシュか別ページ）。
-const BUILD_TAG = "build 2026-07-24 / テスト予定タブ搭載版";
+const BUILD_TAG = "build 2026-07-24 / テスト予定タブ（キー無し）";
 console.log("%c[OWNER'S] " + BUILD_TAG, "color:#6c4cf0;font-weight:bold");
 
 /* ============================================================
@@ -1853,34 +1850,10 @@ function SourceBadge({source}){
 
 /* ============================================================
    テスト予定タブ（広告テスト案の登録・編集・削除・並び替え）
-   一覧の閲覧はキー不要。書き込みはlocalStorageの書き込みキーを添えて送信し、
-   GAS側（スクリプトプロパティ TESTPLAN_WRITE_KEY）で照合する。
+   認証なし：閲覧・書き込みともキー不要（ツールにアクセスできる人は誰でも編集可）。
 ============================================================ */
 const TP_STATUSES=["未着手","実施中","完了","見送り"];
 const TP_BADGE={"未着手":"st-todo","実施中":"st-doing","完了":"st-done","見送り":"st-skip"};
-
-function TestPlanKeyModal({msg,onSubmit,onCancel}){
-  const [v,setV]=useState("");
-  return (
-    <div className="tp-overlay" onClick={onCancel}>
-      <div className="tp-modal" onClick={e=>e.stopPropagation()}>
-        <h3>書き込みキーの設定</h3>
-        <div className="tp-form">
-          {msg? <div className="tp-form-err">{msg}</div> : null}
-          <div className="tp-field">
-            <label>テスト予定を編集するには書き込みキーが必要です</label>
-            <input type="password" value={v} onChange={e=>setV(e.target.value)} placeholder="書き込みキーを入力"
-              onKeyDown={e=>{ if(e.key==="Enter"&&v.trim()) onSubmit(v.trim()); }} autoFocus />
-          </div>
-        </div>
-        <div className="tp-modal-foot">
-          <button className="tp-cancel" onClick={onCancel}>キャンセル</button>
-          <button className="tp-save" disabled={!v.trim()} onClick={()=>onSubmit(v.trim())}>保存</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function TestPlanEditModal({item,busy,onSave,onCancel}){
   const [f,setF]=useState({
@@ -1935,7 +1908,6 @@ function TestPlan(){
   const [msg,setMsg]=useState(null);            // {text, kind:"info"|"ok"|"err"}
   const [modal,setModal]=useState(null);        // null | {item:null(新規)|編集対象}
   const [modalBusy,setModalBusy]=useState(false);
-  const [keyReq,setKeyReq]=useState(null);      // {msg, resolve}：キー入力モーダル（Promiseで待つ）
   const [dragId,setDragId]=useState(null);
   const [overId,setOverId]=useState(null);
   const msgTimer=useRef(null);
@@ -1959,27 +1931,14 @@ function TestPlan(){
   }
   useEffect(()=>{ load(); },[]);
 
-  // 書き込みキー：localStorage→無ければ入力モーダルを出してPromiseで待つ（閲覧はキー不要）
-  function askKey(m){ return new Promise(resolve=>setKeyReq({msg:m||"",resolve})); }
-  async function getKey(){
-    const k=localStorage.getItem(TESTPLAN_KEY_LS)||"";
-    if(k) return k;
-    return await askKey("");
-  }
-  // 書き込み共通：GASがauthErrorを返したら保存済みキーを破棄→再入力→1回だけ再送。
-  // 呼び出し元のモーダルは開いたままなので、入力中のテスト案の内容は消えない。
+  // 書き込み共通：認証なし（キー入力・キー送信は廃止）。通信エラーは ok:false に変換して返す
   async function write(body){
-    let key=await getKey();
-    if(!key) return null; // キー入力キャンセル
-    let res=await postTestPlanWrite({...body,key});
-    if(res&&res.authError){
-      localStorage.removeItem(TESTPLAN_KEY_LS);
-      key=await askKey("書き込みキーが正しくありません。再入力してください");
-      if(!key) return null;
-      res=await postTestPlanWrite({...body,key});
-      if(res&&res.authError){ localStorage.removeItem(TESTPLAN_KEY_LS); flashMsg("書き込みキーが正しくありません","err"); return null; }
+    try{
+      return await postTestPlanWrite(body);
+    }catch(e){
+      console.warn("[OWNER'S] testplan 書き込み失敗:", e.message);
+      return { ok:false, error:"通信に失敗しました" };
     }
-    return res;
   }
 
   async function saveItem(fields){
@@ -1991,8 +1950,7 @@ function TestPlan(){
     }finally{
       setModalBusy(false);
     }
-    if(res==null) return;  // キャンセル：モーダル維持＝入力内容保持
-    if(!res.ok){ flashMsg("保存に失敗しました："+(res.error||"不明なエラー"),"err"); return; } // モーダル維持
+    if(!res||!res.ok){ flashMsg("保存に失敗しました："+((res&&res.error)||"不明なエラー"),"err"); return; } // モーダル維持＝入力内容保持
     setModal(null);
     flashMsg("保存しました","ok");
     await load();
@@ -2002,8 +1960,7 @@ function TestPlan(){
     if(!window.confirm("このテスト案を削除しますか？\n「"+it.title+"」")) return;
     flashMsg("保存中…","info");
     const res=await write({action:"delete",id:it.id});
-    if(res==null){ setMsg(null); return; }
-    if(!res.ok){ flashMsg("削除に失敗しました："+(res.error||"不明なエラー"),"err"); return; }
+    if(!res||!res.ok){ flashMsg("削除に失敗しました："+((res&&res.error)||"不明なエラー"),"err"); return; }
     flashMsg("保存しました","ok");
     await load();
   }
@@ -2014,10 +1971,9 @@ function TestPlan(){
     setItems(next);
     flashMsg("保存中…","info");
     const res=await write({action:"reorder",orders:next.map((it,i)=>({id:it.id,order:i+1}))});
-    if(res==null||!res.ok){
+    if(!res||!res.ok){
       setItems(prev);
-      if(res!=null) flashMsg("並び替えの保存に失敗しました。元の並びに戻しました","err");
-      else setMsg(null);
+      flashMsg("並び替えの保存に失敗しました。元の並びに戻しました","err");
       return;
     }
     flashMsg("保存しました","ok");
@@ -2048,7 +2004,6 @@ function TestPlan(){
           完了・見送りも表示
         </label>
         {msg? <span className={"tp-msg"+(msg.kind==="ok"?" ok":msg.kind==="err"?" err":"")}>{msg.text}</span> : null}
-        <button className="tp-keylink" onClick={()=>{ askKey(""); }}>書き込みキーを設定</button>
       </div>
       {visible.length===0 ? (
         <div className="empty">{(items||[]).length===0? "テスト予定がまだ登録されていません" : "表示できるテスト案がありません（「完了・見送りも表示」で確認できます）"}</div>
@@ -2090,9 +2045,6 @@ function TestPlan(){
         </div>
       )}
       {modal? <TestPlanEditModal item={modal.item} busy={modalBusy} onSave={saveItem} onCancel={()=>{ if(!modalBusy) setModal(null); }} /> : null}
-      {keyReq? <TestPlanKeyModal msg={keyReq.msg}
-        onSubmit={v=>{ localStorage.setItem(TESTPLAN_KEY_LS,v); const r=keyReq.resolve; setKeyReq(null); r(v); flashMsg("書き込みキーを保存しました","ok"); }}
-        onCancel={()=>{ const r=keyReq.resolve; setKeyReq(null); r(null); }} /> : null}
     </div>
   );
 }
